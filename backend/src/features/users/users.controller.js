@@ -13,7 +13,7 @@ export default class UserController {
       if (!email || !password) {
         throw new ApplicationError("All field Must be Present !!", 406);
       }
-      const userExist = await this.userRepository.getUserByEmail(email);
+      const userExist = await this.userRepository.getUser({ email });
       if (!userExist) {
         throw new ApplicationError("User with this Email not Exist !!", 404);
       }
@@ -27,9 +27,12 @@ export default class UserController {
       }
       const token = jwt.sign(
         { email: userExist.email, id: userExist._id },
-        process.env.SECRET_KEY,
+        process.env.ACCESS_TOKEN_SECRET_KEY,
         { expiresIn: "1d" }
       );
+
+      userExist.token = token;
+      await this.userRepository.storeToken(userExist);
       return res.status(200).json({
         success: true,
         token,
@@ -57,6 +60,37 @@ export default class UserController {
         age,
       });
       return res.status(201).json({ success: true, user });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async refreshToken(req, res, next) {
+    try {
+      const headers = req.headers;
+      const authHeader = headers["authorization"];
+      if (!authHeader) {
+        throw new ApplicationError("UnAuthorized Access", 401);
+      }
+      const { id: _id } = jwt.verify(
+        authHeader,
+        process.env.ACCESS_TOKEN_SECRET_KEY
+      );
+
+      if (!_id) {
+        throw new ApplicationError("Unauthorized Access", 401);
+      }
+      const user = await this.userRepository.getUser({ _id });
+
+      if (!user || user.token != authHeader) {
+        throw new ApplicationError("Unauthorized Access", 401);
+      }
+
+      const newToken = jwt.sign(
+        { email: user.email, _id },
+        process.env.ACCESS_TOKEN_SECRET_KEY
+      );
+      res.status(200).json({ success: true, token: newToken });
     } catch (error) {
       next(error);
     }

@@ -8,7 +8,7 @@ const jwtAuth = (req, res, next) => {
     if (!authHeader) {
       throw new ApplicationError("UnAuthorized Access", 401);
     }
-    const { id } = jwt.verify(authHeader, process.env.SECRET_KEY);
+    const { id } = jwt.verify(authHeader, process.env.ACCESS_TOKEN_SECRET_KEY);
     req.userId = id;
     next();
   } catch (error) {

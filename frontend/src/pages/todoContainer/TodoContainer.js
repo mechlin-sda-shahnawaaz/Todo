@@ -17,6 +17,7 @@ function TodoContainer() {
   const [show, setShow] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageLimit, setPageLimit] = useState(5);
+  const [todos, setTodos] = useState([]);
   const { handleSubmit, reset, register, watch } = useForm({
     defaultValues: { searchData: "" },
   });
@@ -31,8 +32,6 @@ function TodoContainer() {
     setShow(true);
     reset(item || {});
   };
-
-  const [todos, setTodos] = useState([]);
 
   async function toggleTodo(value, id) {
     try {

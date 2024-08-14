@@ -16,9 +16,12 @@ export default class UserRepository {
     }
   }
 
-  async getUserByEmail(email) {
+  async storeToken(user) {
+    await user.save();
+  }
+  async getUser(filter) {
     try {
-      const user = await UserModel.findOne({ email });
+      const user = await UserModel.findOne(filter);
       return user;
     } catch (error) {
       throw error;

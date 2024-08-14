@@ -1,15 +1,16 @@
 import "./env.js";
 import express from "express";
-import connectToDB from "./src/config/mongoose.js";
 import userRouter from "./src/features/users/users.router.js";
 import ApplicationError from "./src/error/ApplicationError.js";
 import cors from "cors";
 import todoRouter from "./src/features/todos/todos.router.js";
 import jwtAuth from "./src/middlewares/jwt.auth.js";
+import cookieParser from "cookie-parser";
 
 const app = express();
 app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }));
 
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 

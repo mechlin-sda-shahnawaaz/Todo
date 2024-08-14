@@ -12,4 +12,8 @@ userRouter.post("/signin", (req, res, next) => {
   userController.signIn(req, res, next);
 });
 
+userRouter.post("/refresh-token", (req, res, next) => {
+  userController.refreshToken(req, res, next);
+});
+
 export default userRouter;
