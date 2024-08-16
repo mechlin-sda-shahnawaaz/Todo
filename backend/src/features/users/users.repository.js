@@ -17,7 +17,11 @@ export default class UserRepository {
   }
 
   async storeToken(user) {
-    await user.save();
+    try {
+      await user.save();
+    } catch (error) {
+      throw error;
+    }
   }
   async getUser(filter) {
     try {

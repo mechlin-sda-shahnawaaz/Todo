@@ -2,6 +2,8 @@ import ApplicationError from "../../error/ApplicationError.js";
 import UserRepository from "./users.repository.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { generateTokens } from "../../utils/generateTokens.js";
+import TokenModel from "../tokens/token.model.js";
 export default class UserController {
   constructor() {
     this.userRepository = new UserRepository();
@@ -25,17 +27,14 @@ export default class UserController {
       if (!isPasswordCorrect) {
         throw new ApplicationError("Incorrect Password", 401);
       }
-      const token = jwt.sign(
-        { email: userExist.email, id: userExist._id },
-        process.env.ACCESS_TOKEN_SECRET_KEY,
-        { expiresIn: "1d" }
-      );
 
-      userExist.token = token;
+      const { accessToken, refreshToken } = await generateTokens(userExist);
+      userExist.token = refreshToken;
       await this.userRepository.storeToken(userExist);
       return res.status(200).json({
         success: true,
-        token,
+        accessToken,
+        refreshToken,
       });
     } catch (error) {
       next(error);
@@ -65,33 +64,28 @@ export default class UserController {
     }
   }
 
-  async refreshToken(req, res, next) {
+  async verifyRefreshToken(req, res, next) {
     try {
-      const headers = req.headers;
-      const authHeader = headers["authorization"];
-      if (!authHeader) {
-        throw new ApplicationError("UnAuthorized Access", 401);
+      const { refreshToken } = req.body;
+      if (!refreshToken) {
+        throw new ApplicationError("Refresh Token not Present", 406);
       }
-      const { id: _id } = jwt.verify(
-        authHeader,
-        process.env.ACCESS_TOKEN_SECRET_KEY
+
+      const user = await TokenModel.findOne({ refreshToken });
+      if (!user) {
+        throw new ApplicationError("Invalid RefreshToken", 401);
+      }
+
+      const { _id } = jwt.verify(
+        user.refreshToken,
+        process.env.REFRESH_TOKEN_SECRET_KEY
       );
-
-      if (!_id) {
-        throw new ApplicationError("Unauthorized Access", 401);
-      }
-      const user = await this.userRepository.getUser({ _id });
-
-      if (!user || user.token != authHeader) {
-        throw new ApplicationError("Unauthorized Access", 401);
-      }
-
-      const newToken = jwt.sign(
-        { email: user.email, _id },
-        process.env.ACCESS_TOKEN_SECRET_KEY
-      );
-      res.status(200).json({ success: true, token: newToken });
+      req._id = _id;
+      next();
     } catch (error) {
+      if (error instanceof jwt.JsonWebTokenError) {
+        throw new ApplicationError("Invalid RefreshToken", 406);
+      }
       next(error);
     }
   }

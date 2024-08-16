@@ -8,10 +8,13 @@ const jwtAuth = (req, res, next) => {
     if (!authHeader) {
       throw new ApplicationError("UnAuthorized Access", 401);
     }
-    const { id } = jwt.verify(authHeader, process.env.ACCESS_TOKEN_SECRET_KEY);
-    req.userId = id;
+    const { _id } = jwt.verify(authHeader, process.env.ACCESS_TOKEN_SECRET_KEY);
+    req.userId = _id;
     next();
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      throw new ApplicationError("Token Expired", 400);
+    }
     next(error);
   }
 };

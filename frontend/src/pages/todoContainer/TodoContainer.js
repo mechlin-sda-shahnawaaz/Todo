@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { url } from "../../env";
@@ -10,9 +10,13 @@ import Todo from "../../components/todo/Todo";
 import { useForm } from "react-hook-form";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
+import { userActions } from "../../redux/slice/users.slice";
 
 function TodoContainer() {
-  const { authToken } = useSelector((state) => state.userReducer);
+  const dispatch = useDispatch();
+  const { accessToken, refreshToken } = useSelector(
+    (state) => state.userReducer
+  );
   const navigate = useNavigate();
   const [show, setShow] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,13 +40,32 @@ function TodoContainer() {
   async function toggleTodo(value, id) {
     try {
       await axios.put(`${url}todos/${id}`, value, {
-        headers: { Authorization: authToken },
+        headers: { Authorization: accessToken },
       });
       toast.success("Todo Toggled Successfully");
       fetchTodos();
     } catch (error) {
-      console.log(error);
-      toast.error("Something went wrong !");
+      if (error.response.data.message === "Token Expired") {
+        handleRefreshToken();
+      } else {
+        toast.error("Network Error");
+      }
+    }
+  }
+
+  async function handleRefreshToken() {
+    try {
+      const response = await axios.post(
+        `${url}users/refresh-token`,
+        { refreshToken },
+        { headers: { Authorization: accessToken } }
+      );
+      const { accessToken: token } = response.data;
+      dispatch(userActions.storeAccessToken({ accessToken: token }));
+    } catch (error) {
+      dispatch(userActions.clearAccessToken());
+      dispatch(userActions.clearRefreshToken());
+      navigate("/users/signin");
     }
   }
   async function fetchTodos() {
@@ -50,23 +73,26 @@ function TodoContainer() {
       const response = await axios.get(
         `${url}todos?pageNum=${currentPage}&limit=${pageLimit}&search=${searchData}`,
         {
-          headers: { Authorization: authToken },
+          headers: { Authorization: accessToken },
         }
       );
       const { todos } = response.data;
       setTodos(todos);
     } catch (error) {
-      console.log(error);
-      toast.error("Network Error");
+      if (error.response.data.message === "Token Expired") {
+        handleRefreshToken();
+      } else {
+        toast.error("Network Error");
+      }
     }
   }
   useEffect(() => {
-    if (!authToken) {
+    if (!accessToken) {
       navigate("/users/signin");
       return;
     }
     fetchTodos();
-  }, [currentPage, searchData]);
+  }, [currentPage, searchData, accessToken]);
 
   useEffect(() => {
     reset({ searchData: "" });
@@ -84,29 +110,35 @@ function TodoContainer() {
   async function addTodo(data) {
     try {
       const response = await axios.post(`${url}todos`, data, {
-        headers: { Authorization: authToken },
+        headers: { Authorization: accessToken },
       });
       if (response.data.success) {
         toast.success("Todo Created Successfully");
         fetchTodos();
       }
     } catch (error) {
-      console.log(error);
-      toast.error("Network Error");
+      if (error.response.data.message === "Token Expired") {
+        handleRefreshToken();
+      } else {
+        toast.error("Network Error");
+      }
     }
   }
   async function updateTodo(data) {
     try {
       const response = await axios.put(`${url}todos/${data._id}`, data, {
-        headers: { Authorization: authToken },
+        headers: { Authorization: accessToken },
       });
       if (response.data.success) {
         toast.success("Todo updated Successfully ");
         fetchTodos();
       }
     } catch (error) {
-      console.log(error);
-      toast.error("Network Error");
+      if (error.response.data.message === "Token Expired") {
+        handleRefreshToken();
+      } else {
+        toast.error("Network Error");
+      }
     }
   }
   function onUpdateBtnClick(data) {
@@ -116,14 +148,17 @@ function TodoContainer() {
   async function deleteTodo(id) {
     try {
       const response = await axios.delete(`${url}todos/${id}`, {
-        headers: { Authorization: authToken },
+        headers: { Authorization: accessToken },
       });
       if (response.data.success) {
         fetchTodos();
       }
     } catch (error) {
-      console.log(error);
-      toast.error("Network Error");
+      if (error.response.data.message === "Token Expired") {
+        handleRefreshToken();
+      } else {
+        toast.error("Network Error");
+      }
     }
   }
   async function onDeleteBtnClick(id) {

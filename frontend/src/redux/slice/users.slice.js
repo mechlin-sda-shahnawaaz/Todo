@@ -2,14 +2,24 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const userSlice = createSlice({
   name: "User",
-  initialState: { authToken: "" },
+  initialState: { accessToken: "", refreshToken: "" },
   reducers: {
-    storeToken(state, action) {
-      const { token } = action.payload;
-      state.authToken = token;
+    storeAccessToken(state, action) {
+      const { accessToken } = action.payload;
+      state.accessToken = accessToken;
     },
-    clearToken(state, _) {
-      state.authToken = "";
+
+    storeRefreshToken(state, action) {
+      const { refreshToken } = action.payload;
+      state.refreshToken = refreshToken;
+    },
+
+    clearAccessToken(state, _) {
+      state.accessToken = "";
+    },
+
+    clearRefreshToken(state, _) {
+      state.refreshToken = "";
     },
   },
 });

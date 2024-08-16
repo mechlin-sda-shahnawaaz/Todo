@@ -25,10 +25,14 @@ function Signin() {
       if (response.success) {
         reset({});
       }
-      dispatch(userActions.storeToken({ token: response.token }));
+      dispatch(
+        userActions.storeAccessToken({ accessToken: response.accessToken })
+      );
+      dispatch(
+        userActions.storeRefreshToken({ refreshToken: response.refreshToken })
+      );
       navigate("/");
     } catch (error) {
-      console.log(error);
       const { message } = error?.response?.data || error;
       if (!message) {
         toast.error("Internal Server Error !!");

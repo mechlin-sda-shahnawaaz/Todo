@@ -20,7 +20,6 @@ app.get("/", (req, res) => {
 
 app.use("/users", userRouter);
 app.use("/todos", jwtAuth, todoRouter);
-app.use("/refresh", (req, res) => {});
 
 app.use((req, res) => {
   return res.status(404).json({
@@ -30,7 +29,6 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.log(err);
   if (err instanceof ApplicationError) {
     return res
       .status(err.statusCode)
